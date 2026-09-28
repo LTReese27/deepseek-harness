@@ -1,0 +1,147 @@
+/* The pane body is a block scroller with a definite height, so the pane takes
+   that height outright: the header, the failure line, and the address bar stay
+   put and the state area below is the one scroller. */
+.root {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: 1.5;
+}
+
+/* One 38px row flush under the pane's strip, matching the file tree's header
+   (ui-sidebar-files FilesBody `.header`): status dot and word, the current
+   tab, then the lifecycle button and the take-over toggle at the end. */
+.header {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  align-items: center;
+  box-sizing: border-box;
+  height: 38px;
+  padding: 0 6px 0 16px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+
+.dot {
+  flex: none;
+}
+
+.statusText {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* The active tab's title keeps its start and ellipsizes at its end; the
+   controls after it never shrink. */
+.tabTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The active tab's URL after its title, in the quieter ink. */
+.tabUrl {
+  margin-left: 6px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.lifecycle {
+  flex: none;
+}
+
+/* The take-over toggle with its word; both sit at the header's end. */
+.takeover {
+  display: inline-flex;
+  flex: none;
+  gap: 6px;
+  align-items: center;
+}
+
+.takeoverText {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* One inline line for the last call's failure, under the header. */
+.failure {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 6px 16px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+
+/* The address bar row; present whenever the browser runs. Its one child, the
+   Input's wrap, stretches to the row's full width. */
+.bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  padding: 6px 16px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+
+/* The three non-live states share one centered column of copy. */
+.panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 24px 16px;
+}
+
+.panelText {
+  max-width: 34em;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* The frame's box is the scroller. While the view is taken over it carries
+   the brand-primary rule and the crosshair cursor, so the live gestures never
+   come as a surprise; the focus ring is subsumed by that affordance. */
+.view {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid transparent;
+  outline: none;
+}
+
+.viewTakeover {
+  border-color: var(--dsw-alias-brand-primary);
+  cursor: crosshair;
+}
+
+/* Width-fitted to the pane; the natural size stays the CSS viewport size the
+   coordinate mapping scales back to. */
+.frame {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+.hint {
+  margin: 0;
+  padding: 6px 16px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
