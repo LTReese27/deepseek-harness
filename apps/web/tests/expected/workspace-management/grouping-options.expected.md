@@ -12,3 +12,9 @@
   - menuitem "Hide archived"
   - menuitem "All conversations (show archived)"
   - menuitem "Archived only"
+  - separator
+  - text: Active within
+  - menuitem "Any time"
+  - menuitem "Last 24 hours"
+  - menuitem "Last 7 days"
+  - menuitem "Last 30 days"
