@@ -31,7 +31,7 @@ import { workspaceDisplayTitle } from '@deepseek-ai/dsh-api-workspace-controller
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkspaceBrowserProps } from '../contract/slots.ts'
-import type { ArchivedFilter, GroupNode, SessionNode, SessionOrderBy, SessionRowState } from '../tree.ts'
+import type { ArchivedFilter, GroupNode, RecencyFilter, SessionNode, SessionOrderBy, SessionRowState } from '../tree.ts'
 import {
   deriveFlat, deriveGroups, deriveSearchResults, orderByRecency, owningGroupKey, owningParentFolder,
   pinCurrentBlank, reconcileManualOrder, sessionMemberIds, UNGROUPED_KEY,
@@ -138,14 +138,18 @@ function useNativeDragAcceptance(active: boolean): void {
   }, [active])
 }
 
-/** Grouping, ordering, and archived-filter menu; own open state so it resets with the wide chrome. */
-function ViewOptionsMenu({ groupBy, orderBy, archivedFilter, onGroupPick, onOrderPick, onArchivedFilterPick, t }: {
+/** Grouping, ordering, and the archived/recency filters; own open state so it resets with the wide chrome. */
+function ViewOptionsMenu({
+  groupBy, orderBy, archivedFilter, recencyFilter, onGroupPick, onOrderPick, onArchivedFilterPick, onRecencyPick, t,
+}: {
   groupBy: SessionGroupBy
   orderBy: SessionOrderBy
   archivedFilter: ArchivedFilter
+  recencyFilter: RecencyFilter
   onGroupPick: (mode: SessionGroupBy) => void
   onOrderPick: (mode: SessionOrderBy) => void
   onArchivedFilterPick: (filter: ArchivedFilter) => void
+  onRecencyPick: (filter: RecencyFilter) => void
   t: WorkspaceBrowserProps['t']
 }) {
   const [open, setOpen] = useState(false)
@@ -167,11 +171,18 @@ function ViewOptionsMenu({ groupBy, orderBy, archivedFilter, onGroupPick, onOrde
         { id: 'hide-archived', label: t('viewOptions.hideArchived'), icon: <IconArchiveOffOutlineRegular /> },
         { id: 'show-archived', label: t('viewOptions.showArchived'), icon: <IconQueueOutlineRegular /> },
         { id: 'only-archived', label: t('viewOptions.onlyArchived'), icon: <IconArchiveCheckOutlineRegular /> },
+        { type: 'separator' as const, id: 'recency-filter-separator' },
+        { type: 'label' as const, id: 'recency-filter', text: t('recency.label') },
+        { id: 'recency-any', label: t('recency.any'), icon: <IconClockOutlineRegular /> },
+        { id: 'recency-24h', label: t('recency.24h'), icon: <IconClockOutlineRegular /> },
+        { id: 'recency-7d', label: t('recency.7d'), icon: <IconClockOutlineRegular /> },
+        { id: 'recency-30d', label: t('recency.30d'), icon: <IconClockOutlineRegular /> },
       ]}
       selectedIds={[
         groupBy,
         orderBy,
         { default: 'hide-archived', show: 'show-archived', only: 'only-archived' }[archivedFilter],
+        recencyFilter === 'any' ? 'recency-any' : `recency-${recencyFilter}`,
       ]}
       onSelect={(id) => {
         if (id === 'workspace' || id === 'workspace-tree' || id === 'flat') onGroupPick(id)
@@ -179,6 +190,10 @@ function ViewOptionsMenu({ groupBy, orderBy, archivedFilter, onGroupPick, onOrde
         else if (id === 'hide-archived') onArchivedFilterPick('default')
         else if (id === 'show-archived') onArchivedFilterPick('show')
         else if (id === 'only-archived') onArchivedFilterPick('only')
+        else if (id === 'recency-any') onRecencyPick('any')
+        else if (id === 'recency-24h') onRecencyPick('24h')
+        else if (id === 'recency-7d') onRecencyPick('7d')
+        else if (id === 'recency-30d') onRecencyPick('30d')
         setOpen(false)
       }}
       align="end"
@@ -285,6 +300,8 @@ type SessionTreeProps = Pick<
   rowState: SessionRowState
   /** Switch the archived filter back to the default hide-archived view. */
   onLeaveArchivedOnly: () => void
+  /** Switch the recency filter back to any time. */
+  onLeaveRecency: () => void
   /** Open the browser-owned rename dialog for a real Workspace group. */
   onRenameRequest: (workspaceId: WorkspaceId, currentTitle: string) => void
   /** Open the browser-owned delete-confirmation dialog for a real Workspace group. */
@@ -297,16 +314,24 @@ type SessionTreeProps = Pick<
   onSessionRevealed: (sessionId: SessionId) => void
 }
 
-/** The list-empty placeholder — a glyph over the text; the archived-only view names its filter and offers the way back. */
-function EmptySessions({ rowState, onLeaveArchivedOnly, t }: Pick<SessionTreeProps, 'rowState' | 'onLeaveArchivedOnly' | 't'>) {
+/** The list-empty placeholder — a glyph over the text; the archived-only and recency views name their filter and offer the way back. */
+function EmptySessions({ rowState, onLeaveArchivedOnly, onLeaveRecency, t }: Pick<SessionTreeProps, 'rowState' | 'onLeaveArchivedOnly' | 'onLeaveRecency' | 't'>) {
   const archivedOnly = rowState.archivedFilter === 'only'
+  const recencyActive = !archivedOnly && rowState.recencyFilter !== 'any'
   return (
     <div className={css.emptyState} data-row-key="empty">
-      {archivedOnly ? <IconArchiveOutlineRegular size={24} /> : <IconQueueOutlineRegular size={24} />}
-      <div>{archivedOnly ? t('empty.noneArchived') : t('empty.none')}</div>
+      {archivedOnly
+        ? <IconArchiveOutlineRegular size={24} />
+        : recencyActive ? <IconClockOutlineRegular size={24} /> : <IconQueueOutlineRegular size={24} />}
+      <div>{archivedOnly ? t('empty.noneArchived') : recencyActive ? t('empty.noneRecent') : t('empty.none')}</div>
       {archivedOnly && (
         <button type="button" className={css.emptyAction} onClick={onLeaveArchivedOnly}>
           {t('empty.viewOthers')}
+        </button>
+      )}
+      {recencyActive && (
+        <button type="button" className={css.emptyAction} onClick={onLeaveRecency}>
+          {t('empty.viewAnyTime')}
         </button>
       )}
     </div>
@@ -316,7 +341,7 @@ function EmptySessions({ rowState, onLeaveArchivedOnly, t }: Pick<SessionTreePro
 /** The scrolling session tree; unmounting drops the sessions subscription and the session watermarks. */
 function SessionTree({
   list, useSessionStatus, startSession, open, workspaces, ungroupedSessionIds,
-  rowState, onLeaveArchivedOnly,
+  rowState, onLeaveArchivedOnly, onLeaveRecency,
   workspaceReady, animationResetKey, usePanelInfo,
   onRenameRequest, onDeleteRequest, onSessionRenameRequest,
   renderSlot,
@@ -676,7 +701,7 @@ function SessionTree({
         resetKey={JSON.stringify([animationResetKey, watermarkMotionKey])}
       >
         {groups.length === 0 && (
-          <EmptySessions rowState={rowState} onLeaveArchivedOnly={onLeaveArchivedOnly} t={t} />
+          <EmptySessions rowState={rowState} onLeaveArchivedOnly={onLeaveArchivedOnly} onLeaveRecency={onLeaveRecency} t={t} />
         )}
         {groupRows}
       </AnimatedRows>
@@ -687,7 +712,7 @@ function SessionTree({
 
 /** The flat "In one list" body: every session is one draggable top-level row. */
 function FlatList({
-  list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, open, onSessionRenameRequest,
+  list, sessionIds, rowState, onLeaveArchivedOnly, onLeaveRecency, useSessionStatus, open, onSessionRenameRequest,
   usePanelInfo, setSessionOrder, workspaceReady, animationResetKey,
   revealSessionId, onSessionRevealed, renderSlot, t,
 }: Pick<
@@ -704,6 +729,7 @@ function FlatList({
   | 'onSessionRevealed'
   | 'rowState'
   | 'onLeaveArchivedOnly'
+  | 'onLeaveRecency'
   | 't'
 > & {
   list: SessionListState
@@ -739,7 +765,7 @@ function FlatList({
         resetKey={animationResetKey}
       >
         {rows.length === 0 && (
-          <EmptySessions rowState={rowState} onLeaveArchivedOnly={onLeaveArchivedOnly} t={t} />
+          <EmptySessions rowState={rowState} onLeaveArchivedOnly={onLeaveArchivedOnly} onLeaveRecency={onLeaveRecency} t={t} />
         )}
         {rows.map((node) => {
           const active = drag !== null && drag.pinned === node.pinned
@@ -804,6 +830,7 @@ function SearchResults({
   workspaces,
   archivedSessionIds,
   archivedFilter,
+  recencyFilter,
   query,
   remote,
   resultLimit,
@@ -814,6 +841,8 @@ function SearchResults({
   archivedSessionIds: readonly SessionNode['id'][]
   /** Search matches follow the archived filter selected for the list. */
   archivedFilter: ArchivedFilter
+  /** Search matches follow the recency filter selected for the list. */
+  recencyFilter: RecencyFilter
   /** Unarchive an archived result row in place. */
   onUnarchive: (id: SessionNode['id']) => void
   query: string
@@ -833,11 +862,12 @@ function SearchResults({
       query,
       archivedSessionIds,
       archivedFilter,
+      recencyFilter,
       statuses,
       currentRemote,
       resultLimit,
     ),
-    [list, workspaces, query, archivedSessionIds, archivedFilter, statuses, currentRemote, resultLimit],
+    [list, workspaces, query, archivedSessionIds, archivedFilter, recencyFilter, statuses, currentRemote, resultLimit],
   )
   const pending = currentRemote.status === 'loading'
   const currentId = panelActive
@@ -952,8 +982,10 @@ export function WorkspaceBrowser({
   const groupBy = useStore(s => s.groupBy)
   const orderBy = useStore(s => s.orderBy)
   // Persisted view blobs written before the archived filter existed rehydrate
-  // without the field; they read as the default hide-archived view.
+  // without the field; they read as the default hide-archived view. The same
+  // applies to the recency filter, which reads as any time.
   const archivedFilter = useStore(s => s.archivedFilter ?? 'default')
+  const recencyFilter = useStore(s => s.recencyFilter ?? 'any')
   const groupExpansion = useStore(s => s.groupExpansion)
   const sessionOrderByAccount = useStore(s => s.sessionOrderByAccount)
   // Archived sessions are not openable: the row stays visible under the
@@ -966,6 +998,7 @@ export function WorkspaceBrowser({
     open(sessionId)
   }
   const leaveArchivedOnly = (): void => { actions.setArchivedFilter('default') }
+  const leaveRecency = (): void => { actions.setRecencyFilter('any') }
   const workspaceReady = workspacePhase === 'ready' && workspaceStreamState !== 'loading'
   const mainSessionId = Object.values(list.byId)
     .find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
@@ -981,8 +1014,8 @@ export function WorkspaceBrowser({
     [archivedSessionIds, pinnedSessionIds],
   )
   const rowState = useMemo<SessionRowState>(
-    () => ({ ...orderState, archivedFilter }),
-    [orderState, archivedFilter],
+    () => ({ ...orderState, archivedFilter, recencyFilter }),
+    [orderState, archivedFilter, recencyFilter],
   )
   const flatMemberIds = useMemo(() => sessionMemberIds(list), [list])
   const orderedWorkspaces = useMemo(() => workspaces.map((workspace) => {
@@ -1334,9 +1367,11 @@ export function WorkspaceBrowser({
               groupBy={groupBy}
               orderBy={orderBy}
               archivedFilter={archivedFilter}
+              recencyFilter={recencyFilter}
               onGroupPick={actions.setGroupBy}
               onOrderPick={(mode) => { actions.setOrderBy(mode, activeSessionOrders) }}
               onArchivedFilterPick={actions.setArchivedFilter}
+              onRecencyPick={actions.setRecencyFilter}
               t={t}
             />
           )}
@@ -1411,6 +1446,7 @@ export function WorkspaceBrowser({
               workspaces={workspaces}
               archivedSessionIds={archivedSessionIds}
               archivedFilter={archivedFilter}
+              recencyFilter={recencyFilter}
               query={normalizedQuery}
               remote={remoteSearch}
               resultLimit={searchResultLimit}
@@ -1425,8 +1461,9 @@ export function WorkspaceBrowser({
                 sessionIds={orderedFlatSessionIds}
                 rowState={rowState}
                 onLeaveArchivedOnly={leaveArchivedOnly}
+                onLeaveRecency={leaveRecency}
                 workspaceReady={workspaceReady}
-                animationResetKey={`${groupBy}/${orderBy}/${archivedFilter}`}
+                animationResetKey={`${groupBy}/${orderBy}/${archivedFilter}/${recencyFilter}`}
                 useSessionStatus={useSessionStatus}
                 open={guardedOpen}
                 onSessionRenameRequest={requestSessionRename}
@@ -1449,12 +1486,13 @@ export function WorkspaceBrowser({
                 ungroupedSessionIds={orderedUngroupedSessionIds}
                 workspaceReady={workspaceReady}
                 nestWorkspaces={groupBy === 'workspace-tree'}
-                animationResetKey={`${groupBy}/${orderBy}/${archivedFilter}`}
+                animationResetKey={`${groupBy}/${orderBy}/${archivedFilter}/${recencyFilter}`}
                 groupExpansion={groupExpansion}
                 setGroupExpanded={actions.setGroupExpanded}
                 setSessionOrder={saveSessionOrder}
                 rowState={rowState}
                 onLeaveArchivedOnly={leaveArchivedOnly}
+                onLeaveRecency={leaveRecency}
                 startSession={startSession}
                 open={guardedOpen}
                 insertWorkspaceBefore={insertWorkspaceBefore}

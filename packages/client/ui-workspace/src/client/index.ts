@@ -247,7 +247,12 @@ export function apply(ctx: Context): void {
   })
   const toastActions = {
     undoArchive: unarchiveSession,
-    showArchived: () => { viewInstance.actions.setArchivedFilter('show') },
+    showArchived: () => {
+      viewInstance.actions.setArchivedFilter('show')
+      // The action promises the archived row appears; an active recency window
+      // would keep hiding it, so the same click clears the window.
+      viewInstance.actions.setRecencyFilter('any')
+    },
     openForkSource: (sessionId: SessionId) => {
       if (workspaces.list.getSnapshot().archivedSessionIds.includes(sessionId)) {
         notify({ kind: 'archivedNotOpenable' })
