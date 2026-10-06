@@ -226,7 +226,12 @@ export function apply(ctx: Context): void {
     hooks: { toast: rowToast },
     dismissToast: () => { rowToast.set(null) },
     undoArchive: unarchiveSession,
-    showArchived: () => { viewInstance.actions.setArchivedFilter('show') },
+    showArchived: () => {
+      viewInstance.actions.setArchivedFilter('show')
+      // The action promises the archived row appears; an active recency window
+      // would keep hiding it, so the same click clears the window.
+      viewInstance.actions.setRecencyFilter('any')
+    },
   })
   const browserInjected = (): WorkspaceBrowserInjected => ({
     // Explicit group actions keep their target; unscoped New Session inherits
