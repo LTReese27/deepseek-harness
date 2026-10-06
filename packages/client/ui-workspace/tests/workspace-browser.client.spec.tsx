@@ -433,6 +433,8 @@ describe('WorkspaceBrowser', () => {
         useWorkspaces: hook(workspaceState([workspace('alpha', ['alive', 'gone'])], [sid('gone')])),
       })
       expect(b.store.getSnapshot().archivedFilter).toBeUndefined()
+      // A blob without the recency filter reads as any time: the default view shows.
+      expect(b.store.getSnapshot().recencyFilter).toBeUndefined()
       expect(screen.getByText('alive')).toBeTruthy()
       expect(screen.queryByText('gone')).toBeNull()
       fireEvent.click(screen.getByRole('button', { name: '视图选项' }))
@@ -459,9 +461,10 @@ describe('WorkspaceBrowser', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '视图选项' }))
     expect(screen.getByText('分组方式')).toBeTruthy() // the menu heading label
-    expect(screen.getAllByRole('separator')).toHaveLength(2)
+    expect(screen.getAllByRole('separator')).toHaveLength(3)
     expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([
       '按工作区', '按工作区树', '单列表', '手动排序', '最近更新', '隐藏已归档', '全部对话（显示已归档）', '仅显示已归档',
+      '任何时间', '最近24小时', '最近7天', '最近30天',
     ])
     expect(screen.getByRole('menuitem', { name: '按工作区' }).querySelector('svg')).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: '手动排序' }).querySelector('svg')).toBeTruthy()
@@ -574,6 +577,69 @@ describe('WorkspaceBrowser', () => {
     fireEvent.click(screen.getByText('alpha'))
     expect(screen.getByText('kept')).toBeTruthy()
     expect(screen.queryByText('暂无已归档会话')).toBeNull()
+  })
+
+  it('the recency filters are one exclusive choice and hide stale rows', () => {
+    const dayMs = 24 * 60 * 60 * 1000
+    const now = Date.now()
+    const b = mount({
+      useSessions: hook(sessionState([
+        summary('fresh', now - 60 * 1000),
+        summary('stale', now - 8 * dayMs),
+      ])),
+      useWorkspaces: hook(workspaceState([workspace('alpha', ['fresh', 'stale'])])),
+    })
+    fireEvent.click(screen.getByText('alpha'))
+    const pick = (name: string) => {
+      fireEvent.click(screen.getByRole('button', { name: '视图选项' }))
+      fireEvent.click(screen.getByRole('menuitem', { name }))
+    }
+
+    pick('最近24小时')
+    expect(b.store.getSnapshot().recencyFilter).toBe('24h')
+    expect(screen.getByText('fresh')).toBeTruthy()
+    expect(screen.queryByText('stale')).toBeNull()
+
+    pick('最近7天')
+    expect(b.store.getSnapshot().recencyFilter).toBe('7d')
+    expect(screen.getByText('fresh')).toBeTruthy()
+    expect(screen.queryByText('stale')).toBeNull()
+
+    // The 30-day window covers the 8-day-stale row.
+    pick('最近30天')
+    expect(b.store.getSnapshot().recencyFilter).toBe('30d')
+    expect(screen.getByText('fresh')).toBeTruthy()
+    expect(screen.getByText('stale')).toBeTruthy()
+
+    // 任何时间 is the explicit way back to the unfiltered view.
+    pick('任何时间')
+    expect(b.store.getSnapshot().recencyFilter).toBe('any')
+    expect(screen.getByText('fresh')).toBeTruthy()
+    expect(screen.getByText('stale')).toBeTruthy()
+  })
+
+  it('the empty recency view names its filter and offers the way back', () => {
+    const dayMs = 24 * 60 * 60 * 1000
+    const now = Date.now()
+    const b = mount({
+      useSessions: hook(sessionState([summary('stale', now - 8 * dayMs)])),
+      useWorkspaces: hook(workspaceState([])),
+    })
+    // Flat mode: the stale Ungrouped row is the only body row, so the filter
+    // empties the whole list and raises the recency placeholder.
+    fireEvent.click(screen.getByRole('button', { name: '视图选项' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '单列表' }))
+    expect(screen.getByText('stale')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '视图选项' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '最近7天' }))
+    expect(screen.getByText('所选活跃时间内暂无会话')).toBeTruthy()
+    expect(screen.queryByText('暂无会话')).toBeNull()
+    expect(screen.queryByText('stale')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: '不限时间' }))
+    expect(b.store.getSnapshot().recencyFilter).toBe('any')
+    expect(screen.getByText('stale')).toBeTruthy()
+    expect(screen.queryByText('所选活跃时间内暂无会话')).toBeNull()
   })
 
   it('仅显示已归档 nests tree children of hidden Workspaces under the nearest shown ancestor', () => {
