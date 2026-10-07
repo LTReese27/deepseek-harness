@@ -139,6 +139,13 @@
     - id: schedule
       name: '@deepseek-ai/dsh-schedule'
 
+    # PinchTab browser proxy: server lifecycle, tab inventory, screenshot
+    # frames, and pointer/keyboard actions over the `browser` Remote
+    # namespace. The PinchTab token stays host-side; the web client only
+    # ever sees this facade.
+    - id: browser-controller
+      name: '@deepseek-ai/dsh-api-browser-controller'
+
     # Configuration-surface reads and writes over Typert Remote. Each method
     # reports an actionable error when its settings-domain provider is absent.
     - id: ui-settings-account
@@ -294,6 +301,13 @@
 
     - id: ui-sidebar-terminal
       name: '@deepseek-ai/dsh-client-ui-sidebar-terminal'
+
+    # The right Sidebar's Agent Browser tab: live screenshot watch of the
+    # agent-driven PinchTab browser plus explicit take-over (click, wheel,
+    # keyboard, URL bar) and server start/stop.
+    - id: ui-sidebar-agent-browser
+      name: '@deepseek-ai/dsh-client-ui-sidebar-agent-browser'
+
     # The right Sidebar's workspace file tree tab type.
     - id: ui-sidebar-files
       name: '@deepseek-ai/dsh-client-ui-sidebar-files'
