@@ -480,6 +480,19 @@
       config:
         apiKeyEnv: DEEPSEEK_API_KEY
 
+    # Optional Tavily search backend, off in the shipped base. An overlay row
+    # enables it for a base-backed profile and repoints the pinned provider:
+    #   - id: web-search-tavily
+    #     disabled: false
+    #   - id: web
+    #     config:
+    #       searchProvider: tavily
+    # The key resolves from `$TAVILY_API_KEY` in the launch environment, or a
+    # row-level `apiKey` config.
+    - id: web-search-tavily
+      name: '@deepseek-ai/dsh-web-search-tavily'
+      disabled: true
+
     - id: web-fetch-http
       name: '@deepseek-ai/dsh-web-fetch-http'
 

@@ -3210,6 +3210,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-deliverables ReviewTab',
       'client-ui-plan PlanPreview',
       'client-ui-schedule ScheduleTaskTab',
+      'client-ui-sidebar-agent-browser BrowserBody',
       'client-ui-sidebar-browser BrowserBody',
       'client-ui-sidebar-documentpreview TextPreview',
       'client-ui-sidebar-files FilesBody',

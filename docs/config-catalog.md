@@ -178,6 +178,51 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-tool-presentation -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-api-browser-controller -->
+<a id="deepseek-aidsh-api-browser-controller"></a>
+
+## `@deepseek-ai/dsh-api-browser-controller`
+
+- `source`: [`packages/api/browser-controller/src/index.ts:31`](../packages/api/browser-controller/src/index.ts)
+
+```ts config-catalog
+/** Deployment connection and capture tuning for the proxied PinchTab server. */
+export interface Config {
+  /** Base URL the PinchTab server listens on. */
+  readonly baseUrl: string
+  /**
+   * PinchTab bearer token; wins over {@link tokenFile} when set. Leaves the
+   * Host only as the `Authorization` header toward {@link baseUrl}.
+   */
+  readonly token?: string
+  /**
+   * JSON file the token is re-read from on every call when {@link token} is
+   * unset: `server.token`, with a top-level `token` fallback. Defaults to
+   * `~/.pinchtab/config.json`. A missing file means the server has never run.
+   */
+  readonly tokenFile?: string
+  /**
+   * Ratio of screenshot device pixels to CSS viewport pixels; screenshots are
+   * requested at `1 / deviceScaleFactor` so the frame comes back in CSS
+   * pixels, the unit pointer actions take. `2` is PinchTab's headless
+   * default. Measure a deployment by taking a raw screenshot, dividing its
+   * pixel width by the viewport's CSS width (`window.innerWidth`), and
+   * confirming with a click probe at known CSS coordinates.
+   */
+  readonly deviceScaleFactor: number
+  /** JPEG quality requested for screenshots, 1 through 100. */
+  readonly screenshotQuality: number
+  /**
+   * Longest {@link BrowserController.start} and {@link BrowserController.stop}
+   * wait for the server's health answer to flip, in milliseconds.
+   */
+  readonly startTimeoutMs: number
+  /** PinchTab binary name used by start/stop. */
+  readonly command: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-api-browser-controller -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-api-gateway -->
 <a id="deepseek-aidsh-api-gateway"></a>
 
@@ -4262,6 +4307,25 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-web-search-perplexity -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-web-search-tavily -->
+<a id="deepseek-aidsh-web-search-tavily"></a>
+
+## `@deepseek-ai/dsh-web-search-tavily`
+
+- `inject`: `web`
+- `source`: [`packages/web/web-search-tavily/src/index.ts:32`](../packages/web/web-search-tavily/src/index.ts)
+
+```ts config-catalog
+/** Plugin config (all optional — `apply` fills env-var and constant defaults). */
+export interface Config {
+  /** Tavily API key. Falls back to `$TAVILY_API_KEY`. Empty → provider unavailable. */
+  apiKey?: string
+  /** Endpoint base; `/search` is appended. Defaults to the public API. */
+  baseURL?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-web-search-tavily -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-webhook-github -->
 <a id="deepseek-aidsh-webhook-github"></a>
 
@@ -4390,6 +4454,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-settings-web-search` | — | [`packages/client/ui-settings-web-search/src/index.ts`](../packages/client/ui-settings-web-search/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-shortcuts` | — | [`packages/client/ui-shortcuts/src/index.ts`](../packages/client/ui-shortcuts/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sidebar` | — | [`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-sidebar-agent-browser` | — | [`packages/client/ui-sidebar-agent-browser/src/index.ts`](../packages/client/ui-sidebar-agent-browser/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sidebar-browser` | — | [`packages/client/ui-sidebar-browser/src/index.ts`](../packages/client/ui-sidebar-browser/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sidebar-files` | — | [`packages/client/ui-sidebar-files/src/index.ts`](../packages/client/ui-sidebar-files/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sidebar-right` | — | [`packages/client/ui-sidebar-right/src/index.ts`](../packages/client/ui-sidebar-right/src/index.ts) |
